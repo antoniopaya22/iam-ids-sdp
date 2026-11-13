@@ -287,9 +287,12 @@ func (c *Client) knockAndWait(ctx context.Context, host string, spaPort, tcpPort
 		if err != nil {
 			return total, err
 		}
+		// The port is filtered (DROP) until fwknopd adds the rule, so each probe is a SYN
+		// that gets no answer: keep the probe timeout short to measure the opening time
+		// with a few milliseconds of resolution.
 		deadline := time.Now().Add(1500 * time.Millisecond)
 		for time.Now().Before(deadline) {
-			conn, err := (&net.Dialer{Timeout: 150 * time.Millisecond}).DialContext(ctx, "tcp", net.JoinHostPort(host, fmt.Sprint(tcpPort)))
+			conn, err := (&net.Dialer{Timeout: 20 * time.Millisecond}).DialContext(ctx, "tcp", net.JoinHostPort(host, fmt.Sprint(tcpPort)))
 			if err == nil {
 				_ = conn.Close()
 				return total, nil
@@ -297,7 +300,7 @@ func (c *Client) knockAndWait(ctx context.Context, host string, spaPort, tcpPort
 			if ctx.Err() != nil {
 				return total, ctx.Err()
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(2 * time.Millisecond)
 		}
 	}
 	return total, fmt.Errorf("port %s:%d still closed after SPA", host, tcpPort)
