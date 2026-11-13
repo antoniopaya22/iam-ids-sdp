@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime as dt
+import re
 import sys
 
 import numpy as np
@@ -36,7 +38,22 @@ def read_labelled(paths) -> tuple[list[dict], np.ndarray, list[str]]:
     return feats, y, profiles
 
 
+def parse_time(s: str) -> float:
+    """Seconds since the epoch of an RFC 3339 timestamp (Go prints up to 9 fraction digits)."""
+    s = s.strip().replace("Z", "+00:00")
+    m = re.match(r"^(.*T\d\d:\d\d:\d\d)(\.\d+)?(.*)$", s)
+    if m and m.group(2):
+        s = m.group(1) + m.group(2)[:7] + m.group(3)
+    return dt.datetime.fromisoformat(s).timestamp()
+
+
 def label(raw_path: str, manifest_path: str, out_path: str, min_requests: float = 0.0) -> int:
+    """Join a raw recording with a manifest (session_id, profile, label[, start, end]).
+
+    With start/end (epoch seconds of the workload), only windows that lie entirely inside
+    the workload are kept, so the set-up and tear-down of each session are not labelled
+    with the workload's class.
+    """
     with open(manifest_path, newline="") as f:
         manifest = {r["session_id"]: r for r in csv.DictReader(f)}
     n = 0
@@ -47,9 +64,13 @@ def label(raw_path: str, manifest_path: str, out_path: str, min_requests: float 
             m = manifest.get(r["session_id"])
             if m is None:
                 continue
-            # Windows where the session was idle (e.g. while the workload was starting) carry
-            # no behaviour: skip them.
-            if float(r["req_rate"]) * float(r["window_secs"]) <= min_requests:
+            secs = float(r["window_secs"])
+            if m.get("start") and m.get("end"):
+                t0 = parse_time(r["time"])
+                if t0 < float(m["start"]) or t0 + secs > float(m["end"]):
+                    continue
+            # Windows where the session was idle carry no behaviour: skip them.
+            if float(r["req_rate"]) * secs <= min_requests:
                 continue
             w.writerow({"profile": m["profile"], "label": m["label"], "gateway": r["gateway"],
                         "window_secs": r["window_secs"], **{k: r[k] for k in FEATURE_NAMES}})

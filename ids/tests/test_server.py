@@ -69,3 +69,19 @@ def test_label_joins_the_manifest(tmp_path, rng):
     assert dataset.label(str(raw), str(man), str(out)) == 2
     rows = list(csv.DictReader(open(out)))
     assert [r["label"] for r in rows] == ["0", "1"]
+
+
+def test_label_keeps_windows_inside_the_workload(tmp_path, rng):
+    raw = tmp_path / "raw.csv"
+    rec = Recorder(str(raw))
+    for t in ("2026-01-01T00:00:00.123456789Z", "2026-01-01T00:00:10Z", "2026-01-01T00:00:29Z"):
+        w = window(session="a", rate=3, rng=rng)
+        w["window_start"] = t
+        rec.write(w)
+    start = dataset.parse_time("2026-01-01T00:00:05Z")
+    man = tmp_path / "manifest.csv"
+    man.write_text(f"session_id,profile,label,start,end\na,poll,0,{start},{start + 25}\n")
+    out = tmp_path / "out.csv"
+    # 00:00:00 starts before the workload, 00:00:29 + 2 s ends after it.
+    assert dataset.label(str(raw), str(man), str(out)) == 1
+    assert abs(dataset.parse_time("2026-01-01T00:00:00.123456789Z") % 60 - 0.123456) < 1e-5
