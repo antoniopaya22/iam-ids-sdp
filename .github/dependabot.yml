@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+  # IDS dependencies (ids/requirements*.txt)
+  - package-ecosystem: pip
+    directory: /ids
+    schedule:
+      interval: weekly
+    groups:
+      ids-python:
+        patterns: ["*"]
+
+  # golang and debian base images of the Go components
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ["*"]
+
+  # python base image of the IDS
+  - package-ecosystem: docker
+    directory: /ids
+    schedule:
+      interval: weekly
+
+  # Keycloak and nginx images of the lab
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
