@@ -1,0 +1,102 @@
+site_name: iam-ids-sdp
+site_description: Software-Defined Perimeter with Keycloak IAM (MFA, RBAC, session tokens) and an Apollon-style IDS with per-identity behaviour analytics
+site_url: https://antoniopaya22.github.io/iam-ids-sdp/
+repo_url: https://github.com/antoniopaya22/iam-ids-sdp
+repo_name: antoniopaya22/iam-ids-sdp
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; Antonio Payá González and contributors
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  font:
+    text: Montserrat
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle: { icon: material/weather-night, name: Switch to dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle: { icon: material/weather-sunny, name: Switch to light mode }
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+  - stylesheets/brand.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc: { permalink: true }
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight: { anchor_linenums: true }
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed: { alternate_style: true }
+
+extra:
+  header_nav:
+    - title: Docs
+      url: getting-started/
+    - title: Architecture
+      url: architecture/
+    - title: IAM
+      url: iam/
+    - title: IDS
+      url: ids/
+    - title: Research
+      url: research/
+  header_cta:
+    title: Get started
+    url: getting-started/
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/antoniopaya22
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Getting started: getting-started.md
+      - Architecture: architecture.md
+      - Components & configuration: components.md
+  - Identity & monitoring:
+      - IAM (realm, MFA, RBAC): iam.md
+      - IDS & UEBA: ids.md
+  - Evaluation:
+      - Security evaluation: security-evaluation.md
+      - Performance evaluation: performance.md
+  - Research:
+      - Paper: research.md
+      - Research line: research-line.md
+      - Provenance: provenance.md

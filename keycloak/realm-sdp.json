@@ -1,0 +1,153 @@
+{
+  "realm": "sdp",
+  "displayName": "iam-ids-sdp lab",
+  "enabled": true,
+  "sslRequired": "all",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 10,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyCodeReusable": true,
+  "requiredActions": [],
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Administration console and every service" },
+      { "name": "researcher", "description": "Research records and the portal" },
+      { "name": "viewer", "description": "Portal only" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "sdp-client",
+      "name": "SDP initiating hosts",
+      "description": "Public client used by sdp-client (direct grant with password + TOTP in the lab).",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocol": "openid-connect",
+      "attributes": { "access.token.lifespan": "300" },
+      "protocolMappers": [
+        {
+          "name": "audience sdp-controller",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.custom.audience": "sdp-controller", "access.token.claim": "true", "id.token.claim": "false", "introspection.token.claim": "true" }
+        },
+        {
+          "name": "audience sdp-gateway",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.custom.audience": "sdp-gateway", "access.token.claim": "true", "id.token.claim": "false", "introspection.token.claim": "true" }
+        }
+      ]
+    },
+    {
+      "clientId": "sdp-controller",
+      "name": "SDP controller",
+      "description": "Confidential client of the controller: token introspection and user logout on IDS alerts.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KC_CONTROLLER_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@lab.invalid",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Researcher",
+      "realmRoles": ["researcher"],
+      "credentials": [
+        { "type": "password", "value": "${ALICE_PASSWORD}", "temporary": false },
+        {
+          "type": "otp",
+          "userLabel": "lab authenticator (demo secret)",
+          "secretData": "{\"value\":\"${ALICE_OTP_SECRET}\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@lab.invalid",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Viewer",
+      "realmRoles": ["viewer"],
+      "credentials": [
+        { "type": "password", "value": "${BOB_PASSWORD}", "temporary": false },
+        {
+          "type": "otp",
+          "userLabel": "lab authenticator (demo secret)",
+          "secretData": "{\"value\":\"${BOB_OTP_SECRET}\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "email": "carol@lab.invalid",
+      "emailVerified": true,
+      "firstName": "Carol",
+      "lastName": "Admin",
+      "realmRoles": ["admin"],
+      "credentials": [
+        { "type": "password", "value": "${CAROL_PASSWORD}", "temporary": false },
+        {
+          "type": "otp",
+          "userLabel": "lab authenticator (demo secret)",
+          "secretData": "{\"value\":\"${CAROL_OTP_SECRET}\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "bench",
+      "enabled": true,
+      "email": "bench@lab.invalid",
+      "emailVerified": true,
+      "firstName": "Bench",
+      "lastName": "Workload",
+      "realmRoles": ["viewer"],
+      "credentials": [
+        { "type": "password", "value": "${BENCH_PASSWORD}", "temporary": false },
+        {
+          "type": "otp",
+          "userLabel": "lab authenticator (demo secret)",
+          "secretData": "{\"value\":\"${BENCH_OTP_SECRET}\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "service-account-sdp-controller",
+      "enabled": true,
+      "serviceAccountClientId": "sdp-controller",
+      "clientRoles": { "realm-management": ["manage-users", "view-users"] }
+    }
+  ]
+}

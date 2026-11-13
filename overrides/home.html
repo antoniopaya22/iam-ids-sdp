@@ -1,0 +1,382 @@
+{#- Landing page. Layout shared with the other SDP research sites (SDP Lab,
+    SecureSDP); colours and signature details come from stylesheets/brand.css.
+    docs/stylesheets/landing.css + docs/javascripts/home.js are only loaded here. -#}
+{% extends "main.html" %}
+
+{% block extrahead %}
+{{ super() }}
+<link rel="stylesheet" href="{{ 'stylesheets/landing.css' | url }}">
+{% endblock %}
+
+{% block header %}
+<header class="lp-nav" id="lp-nav" data-md-component="header">
+  <div class="lp-wrap lp-nav__in">
+    <a class="lp-brand" href="{{ '.' | url }}">
+      <img src="{{ 'assets/logo.svg' | url }}" alt="" width="26" height="26">
+      <span>iam-ids-sdp</span>
+    </a>
+    <nav class="lp-nav__links" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="{{ 'getting-started/' | url }}">Docs</a>
+      <a href="{{ 'ids/' | url }}">IDS</a>
+      <a href="#eval">Results</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="lp-nav__cta">
+      <a class="lp-btn lp-btn--line lp-hide-sm" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} GitHub</a>
+      <a class="lp-btn lp-btn--primary" href="{{ 'getting-started/' | url }}">Get started</a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block site_nav %}{% endblock %}
+{% block container %}{% endblock %}
+
+{% block tabs %}
+<div class="lp" id="lp">
+
+  <nav class="lp-dots" aria-label="Sections">
+    <a href="#top" data-dot="top" aria-label="Top"></a>
+    <a href="#problem" data-dot="problem" aria-label="The problem"></a>
+    <a href="#how" data-dot="how" aria-label="How it works"></a>
+    <a href="#build" data-dot="build" aria-label="Run it"></a>
+    <a href="#eval" data-dot="eval" aria-label="Results"></a>
+    <a href="#faq" data-dot="faq" aria-label="FAQ"></a>
+  </nav>
+
+  <!-- =========================================================== HERO -->
+  <section class="lp-sec lp-dark lp-hero" id="top">
+    <div class="lp-wrap lp-hero__grid">
+      <div>
+        <p class="lp-eyebrow">Identity-aware Software-Defined Perimeter</p>
+        <h1 class="lp-display">Verify who. <br>Watch how<i>.</i></h1>
+        <p class="lp-lead">Keycloak checks who the user is, with MFA, before any packet reaches a
+        gateway. The gateway checks the token again on every request, and an IDS revokes the
+        session as soon as its behaviour drifts.</p>
+        <div class="lp-row">
+          <a class="lp-btn lp-btn--primary lp-btn--lg" href="{{ 'getting-started/' | url }}">Get started</a>
+          <a class="lp-btn lp-btn--line lp-btn--lg" href="https://doi.org/10.1007/s10207-025-01099-9">Read the paper ↗</a>
+        </div>
+        <ul class="lp-facts">
+          <li><b>Published</b> in the International Journal of Information Security, 2025</li>
+          <li><b>Two modes</b> traditional and proposed, same lab, same demo</li>
+          <li><b>Provenance</b> written in 2026 following the paper; its results were not regenerated with this code. <a href="{{ 'provenance/' | url }}">Details</a></li>
+        </ul>
+      </div>
+
+      <figure class="lp-card lp-hero__viz" aria-label="Animation of a session: the user logs in to Keycloak with MFA, the client asks the controller for a service with its token, the controller validates it and prepares the gateway, the client reaches the hidden service, the gateway reports telemetry to the IDS, and an IDS alert makes the controller revoke the session.">
+        <div class="lp-card__head"><span class="lp-live"></span>Session lifecycle<span class="lp-card__tag">Simulation of the lab</span></div>
+        <svg class="lp-diagram" data-flow="iam" viewBox="0 0 640 370" role="img" aria-label="Session lifecycle diagram">
+          <rect x="448" y="196" width="160" height="108" rx="10" class="lp-d-zone"/>
+          <text x="528" y="214" class="lp-d-zone-label" text-anchor="middle">private</text>
+
+          <line id="lp-l-cl-kc"    x1="120" y1="218" x2="120" y2="104" class="lp-d-link"/>
+          <line id="lp-l-cl-ctrl"  x1="180" y1="218" x2="300" y2="104" class="lp-d-link"/>
+          <line id="lp-l-ctrl-kc"  x1="196" y1="72"  x2="280" y2="72"  class="lp-d-link"/>
+          <line id="lp-l-ctrl-gw"  x1="355" y1="104" x2="355" y2="218" class="lp-d-link"/>
+          <line id="lp-l-cl-gw"    x1="196" y1="250" x2="280" y2="250" class="lp-d-link"/>
+          <line id="lp-l-gw-svc"   x1="430" y1="250" x2="462" y2="250" class="lp-d-link"/>
+          <line id="lp-l-gw-ids"   x1="400" y1="218" x2="505" y2="104" class="lp-d-link lp-d-link--dash"/>
+          <line id="lp-l-ids-ctrl" x1="430" y1="72"  x2="462" y2="72"  class="lp-d-link"/>
+          <text x="128" y="165" class="lp-d-linklabel">MFA</text>
+          <text x="238" y="62" class="lp-d-linklabel" text-anchor="middle">introspect</text>
+          <text x="216" y="190" class="lp-d-linklabel">SPA · mTLS · token</text>
+          <text x="363" y="165" class="lp-d-linklabel">keys · identity</text>
+          <text x="238" y="240" class="lp-d-linklabel" text-anchor="middle">SPA</text>
+          <text x="472" y="166" class="lp-d-linklabel">telemetry</text>
+          <text x="446" y="62" class="lp-d-linklabel" text-anchor="middle">alert</text>
+
+          <circle id="lp-p-login" r="6" cx="120" cy="216" class="lp-d-pkt lp-d-pkt--ctrl" opacity="0"/>
+          <circle id="lp-p-token" r="6" cx="120" cy="106" class="lp-d-pkt lp-d-pkt--ok" opacity="0"/>
+          <circle id="lp-p-req"   r="6" cx="180" cy="218" class="lp-d-pkt lp-d-pkt--ctrl" opacity="0"/>
+          <circle id="lp-p-intro" r="6" cx="280" cy="72"  class="lp-d-pkt lp-d-pkt--ctrl" opacity="0"/>
+          <circle id="lp-p-keys"  r="6" cx="355" cy="104" class="lp-d-pkt lp-d-pkt--ctrl" opacity="0"/>
+          <circle id="lp-p-spa"   r="7" cx="197" cy="250" class="lp-d-pkt lp-d-pkt--spa" opacity="0"/>
+          <circle id="lp-p-data"  r="6" cx="197" cy="250" class="lp-d-pkt lp-d-pkt--ok" opacity="0"/>
+          <circle id="lp-p-tel"   r="5" cx="400" cy="218" class="lp-d-pkt lp-d-pkt--tel" opacity="0"/>
+          <circle id="lp-p-alert" r="7" cx="462" cy="72"  class="lp-d-pkt lp-d-pkt--alert" opacity="0"/>
+          <g id="lp-p-drop" opacity="0"></g>
+
+          <g class="lp-d-node" id="lp-n-kc"><rect x="45" y="40" width="150" height="64" rx="10"/>
+            <text x="120" y="68" text-anchor="middle" class="lp-d-title">Keycloak</text>
+            <text x="120" y="86" text-anchor="middle" class="lp-d-sub">MFA · realm roles</text></g>
+          <g class="lp-d-node" id="lp-n-ctrl"><rect x="280" y="40" width="150" height="64" rx="10"/>
+            <text x="355" y="68" text-anchor="middle" class="lp-d-title">Controller</text>
+            <text x="355" y="86" text-anchor="middle" class="lp-d-sub">policy · RBAC</text></g>
+          <g class="lp-d-node lp-d-node--ids" id="lp-n-ids"><rect x="462" y="40" width="136" height="64" rx="10"/>
+            <text x="530" y="68" text-anchor="middle" class="lp-d-title">IDS</text>
+            <text x="530" y="86" text-anchor="middle" class="lp-d-sub">MAB · UEBA</text></g>
+          <g class="lp-d-node" id="lp-n-client"><rect x="45" y="218" width="150" height="64" rx="10"/>
+            <text x="120" y="246" text-anchor="middle" class="lp-d-title">Client</text>
+            <text x="120" y="264" text-anchor="middle" class="lp-d-sub">sdp-client · alice</text></g>
+          <g class="lp-d-node" id="lp-n-gw"><rect x="280" y="218" width="150" height="64" rx="10"/>
+            <text x="355" y="246" text-anchor="middle" class="lp-d-title">Gateway</text>
+            <text x="355" y="264" text-anchor="middle" class="lp-d-sub">SPA · token check</text></g>
+          <g class="lp-d-node lp-d-node--svc" id="lp-n-svc"><rect x="462" y="222" width="136" height="56" rx="10"/>
+            <text x="530" y="246" text-anchor="middle" class="lp-d-title">Service</text>
+            <text x="530" y="263" text-anchor="middle" class="lp-d-sub">nginx · hidden</text></g>
+
+          <g id="lp-badge" transform="translate(430 214)">
+            <circle r="13" class="lp-d-badge"/>
+            <g id="lp-badge-closed"><rect x="-5" y="-2" width="10" height="8" rx="1.5" class="lp-d-badge-icon"/><path d="M-3 -2v-3a3 3 0 0 1 6 0v3" class="lp-d-badge-stroke"/></g>
+            <g id="lp-badge-open" opacity="0"><rect x="-5" y="-2" width="10" height="8" rx="1.5" class="lp-d-badge-icon"/><path d="M-3 -2v-3a3 3 0 0 1 6 0" class="lp-d-badge-stroke"/></g>
+          </g>
+          <text id="lp-status" x="24" y="352" class="lp-d-status">gateway: INPUT DROP · no session for alice</text>
+        </svg>
+        <div class="lp-flow__bar">
+          <ol class="lp-flow__steps" aria-label="Steps">
+            <li><button type="button" data-step="0" aria-current="step" data-status="alice → Keycloak · password + TOTP → token, role researcher" data-caption="The user logs in to Keycloak with password and TOTP. The access token carries the realm roles that decide what the user may ask for.">1 Log in</button></li>
+            <li><button type="button" data-step="1" data-status="SPA → controller · mTLS with device cert · Bearer token" data-caption="The client knocks on the dark controller, opens mutual TLS with its device certificate and asks for a service, presenting the token.">2 Ask</button></li>
+            <li><button type="button" data-step="2" data-status="token valid · owner matches · role grants records · keys → gateway" data-caption="The controller validates and introspects the token, checks the device owner and the roles, then installs fresh SPA keys and the identity on the gateway.">3 Decide</button></li>
+            <li><button type="button" data-step="3" data-status="SPA → gateway · token re-checked per request · HTTP 200" data-caption="The client knocks on the gateway, which opens for that address and validates the token and roles again, on its own, for every request.">4 Connect</button></li>
+            <li><button type="button" data-step="4" data-status="gateway → IDS · per-session features every 2 s" data-caption="The gateway reports per-session request features to the IDS, which compares them with this user's own baseline and asks its classifier pool.">5 Watch</button></li>
+            <li><button type="button" data-step="5" data-status="IDS alert → controller · session revoked · Keycloak logout" data-caption="When the session drifts far from the baseline and the classifiers agree, the controller revokes it on every gateway and ends the Keycloak session.">6 Revoke</button></li>
+          </ol>
+          <div class="lp-flow__ctl">
+            <button type="button" data-flow="toggle" aria-label="Pause animation">❚❚</button>
+            <button type="button" data-flow="restart" aria-label="Restart animation">↺</button>
+          </div>
+        </div>
+        <p class="lp-flow__caption" id="lp-flow-caption" aria-live="polite">The user logs in to Keycloak with password and TOTP. The access token carries the realm roles that decide what the user may ask for.</p>
+      </figure>
+    </div>
+    <div class="lp-wrap">
+      <div class="lp-strip">
+        <div><span>Where</span><b>In front of internal web services</b></div>
+        <div><span>What it adds</span><b>MFA, roles and live revocation</b></div>
+        <div><span>Cost</span><b>About 75–100 ms per set-up, as reported</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== PROBLEM -->
+  <section class="lp-sec lp-light" id="problem">
+    <div class="lp-wrap">
+      <div class="lp-split">
+        <div>
+          <p class="lp-eyebrow">The problem</p>
+          <h2 class="lp-h2">A key is not <br>a person<i>.</i></h2>
+        </div>
+        <p class="lp-text">A classic SDP trusts the device key pair. Whoever holds it gets every
+        service listed for that device, and once the gateway opens, nobody looks at what the
+        session does.</p>
+      </div>
+      <div class="lp-cols">
+        <div><h3>Devices, not users</h3><p>A stolen device key is enough to pass the controller.</p></div>
+        <div><h3>All or nothing</h3><p>No roles: a device reaches every service it is registered for.</p></div>
+        <div><h3>Blind after the knock</h3><p>An authorized session can consume anything without anyone noticing.</p></div>
+      </div>
+      <div class="lp-features">
+        <a href="{{ 'iam/' | url }}"><h3>Keycloak IAM</h3><p>Password and TOTP, realm roles and short-lived session tokens.</p><span>IAM →</span></a>
+        <a href="{{ 'architecture/' | url }}"><h3>Token at every hop</h3><p>The controller and each gateway validate the token on their own.</p><span>Architecture →</span></a>
+        <a href="{{ 'ids/' | url }}"><h3>Apollon-style IDS</h3><p>Thompson sampling picks a classifier from a pool for every window.</p><span>IDS →</span></a>
+        <a href="{{ 'ids/' | url }}"><h3>Per-identity baseline</h3><p>Each user is compared with their own usual behaviour, not with everyone.</p><span>UEBA →</span></a>
+      </div>
+      <p class="lp-note">What the proposed architecture adds to the SDP (paper, Sect. 5).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ HOW -->
+  <section class="lp-sec lp-dark" id="how">
+    <div class="lp-wrap">
+      <div class="lp-split">
+        <div>
+          <p class="lp-eyebrow">How it works</p>
+          <h2 class="lp-h2">From login <br>to revocation<i>.</i></h2>
+        </div>
+        <p class="lp-text">Every session starts with an MFA login and ends with a disconnect or with a
+        revocation the IDS asked for. The demo checks each step against the running lab.</p>
+      </div>
+      <div class="lp-cols lp-cols--dark">
+        <div><span class="lp-num">01</span><h3>Authenticate</h3><p>Password and TOTP at Keycloak; the token's realm roles decide which services a user may request.</p></div>
+        <div><span class="lp-num">02</span><h3>Authorize twice</h3><p>The controller validates and introspects the token; the gateway checks it again for every request.</p></div>
+        <div><span class="lp-num">03</span><h3>Watch and revoke</h3><p>Per-session telemetry feeds the IDS; an alert removes rules, connections and the Keycloak session.</p></div>
+      </div>
+      <div class="lp-code lp-code--wide">
+        <div class="lp-win">
+          <div class="lp-win__bar"><i></i><i></i><i></i><span>./scripts/demo.sh</span></div>
+<pre class="lp-win__body lp-term" aria-label="Output of the iam-ids-sdp demo, recorded from the lab"><span class="ln cmd"><span class="p">$</span> ./scripts/demo.sh
+</span><span class="ln"><span class="ok">PASS</span> password without the TOTP code is refused
+</span><span class="ln"><span class="ok">PASS</span> password + TOTP: token for alice with realm role researcher
+</span><span class="ln"><span class="ok">PASS</span> MFA token -> SPA + mTLS controller -> SPA accepting host -> HTTP 200
+</span><span class="ln"><span class="ok">PASS</span> no token: the controller refuses the session (401) even with a valid device certificate
+</span><span class="ln"><span class="ok">PASS</span> wrong role: bob (viewer) is refused records (403)
+</span><span class="ln"><span class="ok">PASS</span> accepting host refuses a request on alice's session without the token (independent validation)
+</span><span class="ln"><span class="ok">PASS</span> IDS raised an alert for alice's session 339521b94a0479a9ceb2e1d4
+</span><span class="ln"><span class="ok">PASS</span> controller acknowledged the alert and revoked the session
+</span><span class="ln"><span class="ok">PASS</span> Keycloak session of alice ended (audit: iam_logout)
+</span><span class="ln"><span class="ok">PASS</span> bob's session is unaffected (/portal/ -> HTTP 200)
+</span><span class="ln"><span class="ok">PASS</span> alice re-authenticated (password + TOTP) and reached the portal
+</span><span class="ln">All checks passed.
+</span></pre>
+        </div>
+      </div>
+      <p class="lp-note">Recorded from the lab (11 of the 22 checks shown). The IDS alert comes from a short load test with <code>hey</code> on alice's own session. <a href="{{ 'security-evaluation/' | url }}">What the demo checks →</a></p>
+    </div>
+  </section>
+
+  <!-- ========================================================== BUILD -->
+  <section class="lp-sec lp-light" id="build">
+    <div class="lp-wrap">
+      <div class="lp-split">
+        <div>
+          <p class="lp-eyebrow">Run it</p>
+          <h2 class="lp-h2">Roles in, <br>sessions out<i>.</i></h2>
+        </div>
+        <p class="lp-text">One policy maps services to Keycloak realm roles and devices to their owners.
+        Docker Compose starts Keycloak, the IDS, the controller, a gateway in front of nginx and two
+        clients, with the PKI created at start-up.</p>
+      </div>
+      <div class="lp-code">
+        <div class="lp-win">
+          <div class="lp-win__bar"><i></i><i></i><i></i><span>config/policy.yaml</span></div>
+<pre class="lp-win__body"><code><span class="k">services</span>:
+  portal:
+    path: /portal/
+    roles: [viewer, researcher, admin]
+  records:
+    path: /records/
+    roles: [researcher, admin]   <span class="c"># sensitive data</span>
+
+<span class="k">devices</span>:
+  ih-alice:
+    owner: alice                 <span class="c"># researcher</span>
+    services: [portal, records, admin]
+  ih-bob:
+    owner: bob                   <span class="c"># viewer</span>
+    services: [portal, records, admin]</code></pre>
+        </div>
+        <div class="lp-win">
+          <div class="lp-win__bar"><i></i><i></i><i></i><span>terminal</span><button type="button" data-copy="./scripts/gen-env.sh && docker compose up -d --build --wait && ./scripts/demo.sh">Copy</button></div>
+<pre class="lp-win__body lp-term" aria-label="Commands and output recorded from the lab"><span class="ln cmd"><span class="p">$</span> docker compose exec ih-alice sdp-client connect records
+</span><span class="ln">  1. IAM login (password + TOTP)    58.2 ms
+</span><span class="ln">  2. SPA to the controller          70.7 ms
+</span><span class="ln">  3. mTLS session request           60.3 ms
+</span><span class="ln">  4. SPA to 1 accepting host(s)    115.4 ms
+</span><span class="ln">  5. first request /records/         2.8 ms
+</span><span class="ln">  gw-129 -> <span class="ok">HTTP 200</span>
+</span><span class="ln cmd"><span class="p">$</span> docker compose exec ih-bob sdp-client connect records
+</span><span class="ln">denied: controller denied the session (403): forbidden:
+  roles [viewer] do not grant records
+</span></pre>
+        </div>
+      </div>
+      <div class="lp-features">
+        <a href="{{ 'components/#sdp-controller' | url }}"><h3>sdp-controller</h3><p>Policy decision point: token validation, RBAC, sessions, revocation.</p><span>Controller →</span></a>
+        <a href="{{ 'components/#sdp-gateway' | url }}"><h3>sdp-gateway</h3><p>Default-drop iptables, fwknopd, token-checking proxy, telemetry.</p><span>Accepting host →</span></a>
+        <a href="{{ 'components/#sdp-client' | url }}"><h3>sdp-client</h3><p>MFA login, SPA, mTLS, local forwarder, workloads and benchmark.</p><span>Initiating host →</span></a>
+        <a href="{{ 'ids/' | url }}"><h3>IDS</h3><p>Apollon MAB over a classifier pool plus a per-identity baseline, in Python.</p><span>IDS and UEBA →</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================== EVAL -->
+  <section class="lp-sec lp-dark" id="eval">
+    <div class="lp-wrap">
+      <div class="lp-split">
+        <div>
+          <p class="lp-eyebrow">Results reported in the paper</p>
+          <h2 class="lp-h2">Identity costs <br>milliseconds<i>.</i></h2>
+        </div>
+        <p class="lp-text">The paper measured four topologies with and without Keycloak and the IDS.
+        Connection set-up grew by roughly 75–100 ms and about 3.3 KB per session; throughput stayed
+        almost unchanged.</p>
+      </div>
+      <div class="lp-table">
+        <div class="lp-table__row lp-table__head"><span>Topology</span><span>Traditional</span><span>Proposed</span><span>Difference</span></div>
+        <div class="lp-table__row"><b>1 IH, 1 AH</b><span>103 ms</span><span>181 ms</span><strong>+78 ms</strong></div>
+        <div class="lp-table__row"><b>1 IH, 2 AHs</b><span>115 ms</span><span>180 ms</span><strong>+65 ms</strong></div>
+        <div class="lp-table__row"><b>1 IH, 5 AHs</b><span>137 ms</span><span>230 ms</span><strong>+93 ms</strong></div>
+        <div class="lp-table__row"><b>5 IHs, 10 AHs</b><span>143 ms</span><span>247 ms</span><strong>+104 ms</strong></div>
+      </div>
+      <p class="lp-note">Connection set-up time as reported in Payá et al., IJIS 2025 (Tables 2–5). Not regenerated with this implementation; <code>scripts/bench/run.sh</code> measures it on your machine, and one labelled local run is on the performance page.</p>
+      <div class="lp-row"><a class="lp-btn lp-btn--line" href="{{ 'performance/' | url }}">Performance →</a> <a class="lp-btn lp-btn--line" href="{{ 'security-evaluation/' | url }}">Security evaluation →</a></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ FAQ -->
+  <section class="lp-sec lp-light" id="faq">
+    <div class="lp-wrap lp-faq">
+      <h2 class="lp-h2">Questions<i>.</i></h2>
+      <div class="lp-faq__list">
+        <details open><summary>Is this the code used in the paper's evaluation?</summary>
+          <p>No. The repository cited by the paper held only an initial commit when it was published.
+          This implementation was written in 2026 following the architecture the paper describes; the
+          paper's numbers were not regenerated with it. See <a href="{{ 'provenance/' | url }}">provenance</a>.</p></details>
+        <details><summary>Does it reproduce the paper's attack experiments?</summary>
+          <p>No. The repository is defensive: authorization tests and one monitoring test that runs a
+          standard benchmarking tool on a user's own session. The credential-theft and DoS scenarios are
+          summarised as reported in the paper on the <a href="{{ 'security-evaluation/' | url }}">security evaluation</a> page.</p></details>
+        <details><summary>What does the IDS actually learn?</summary>
+          <p>A small classifier pool, chosen per window by Apollon's multi-armed bandit, over per-session
+          request statistics recorded from benign lab workloads, combined with a baseline per user. It is
+          a lab model, not the paper's Apollon model trained on public intrusion datasets.
+          <a href="{{ 'ids/' | url }}">IDS and UEBA</a> explains how to plug in your own.</p></details>
+        <details><summary>Can I run it in production?</summary>
+          <p>It is research software. The lab provisions demo TOTP secrets at realm import, keeps
+          sessions in memory and shares one certificate between gateway replicas. Review
+          <a href="{{ 'components/' | url }}">components and configuration</a> before reusing any part of it.</p></details>
+        <details><summary>How does it relate to SDP Lab and SecureSDP?</summary>
+          <p>They belong to the same research line. <a href="https://antoniopaya22.github.io/Software-Defined-Perimeter/">SDP Lab</a>
+          runs the Waverley Labs SDP with fwknop, <a href="https://antoniopaya22.github.io/Secure-SDP/">SecureSDP</a>
+          implements the Bridge model, and iam-ids-sdp adds identity and threat detection.</p></details>
+        <details><summary>How do I cite it?</summary>
+          <p>Cite the article in the International Journal of Information Security 24, 178 (2025).
+          BibTeX is on the <a href="{{ 'research/' | url }}">paper page</a>.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ CTA -->
+  <section class="lp-sec lp-cta">
+    <div class="lp-wrap">
+      <h2 class="lp-display lp-display--md">Put identity <br>on the perimeter<i>.</i></h2>
+      <p class="lp-lead">Start the lab, log in with MFA and watch the IDS revoke a session.</p>
+      <div class="lp-install">
+        <span>$</span><code>git clone https://github.com/antoniopaya22/iam-ids-sdp && cd iam-ids-sdp && ./scripts/gen-env.sh && docker compose up -d --build --wait</code>
+        <button type="button" data-copy="git clone https://github.com/antoniopaya22/iam-ids-sdp && cd iam-ids-sdp && ./scripts/gen-env.sh && docker compose up -d --build --wait">Copy</button>
+      </div>
+      <div class="lp-row">
+        <a class="lp-btn lp-btn--dark lp-btn--lg" href="{{ 'getting-started/' | url }}">Read the quick start</a>
+        <a class="lp-btn lp-btn--onblue lp-btn--lg" href="{{ config.repo_url }}">Star on GitHub ↗</a>
+      </div>
+      <div class="lp-watermark" aria-hidden="true">iam-ids-sdp</div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer class="lp-foot">
+  <div class="lp-wrap lp-foot__grid">
+    <div>
+      <a class="lp-brand" href="{{ '.' | url }}"><img src="{{ 'assets/logo.svg' | url }}" alt="" width="22" height="22"><span>iam-ids-sdp</span></a>
+      <p>Software-Defined Perimeter with Keycloak IAM and an Apollon-style IDS with per-identity behaviour analytics.</p>
+    </div>
+    <div><h4>Documentation</h4>
+      <a href="{{ 'getting-started/' | url }}">Getting started</a>
+      <a href="{{ 'architecture/' | url }}">Architecture</a>
+      <a href="{{ 'iam/' | url }}">IAM</a>
+      <a href="{{ 'ids/' | url }}">IDS and UEBA</a></div>
+    <div><h4>Research</h4>
+      <a href="https://doi.org/10.1007/s10207-025-01099-9">Paper</a>
+      <a href="{{ 'research/' | url }}">Cite</a>
+      <a href="{{ 'performance/' | url }}">Performance</a>
+      <a href="{{ 'provenance/' | url }}">Provenance</a></div>
+    <div><h4>Project</h4>
+      <a href="{{ config.repo_url }}">GitHub</a>
+      <a href="https://antoniopaya22.github.io/Software-Defined-Perimeter/">SDP Lab</a>
+      <a href="https://antoniopaya22.github.io/Secure-SDP/">SecureSDP</a>
+      <a href="{{ config.repo_url }}/blob/main/LICENSE">MIT licence</a></div>
+  </div>
+  <div class="lp-wrap lp-foot__base">© 2025–2026 A. Payá, V. García-Díaz, A. Gómez</div>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+<script src="{{ 'javascripts/home.js' | url }}"></script>
+{% endblock %}

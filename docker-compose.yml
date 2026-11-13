@@ -1,0 +1,306 @@
+# iam-ids-sdp lab: Software-Defined Perimeter with Keycloak IAM and an IDS (proposed mode)
+# or with key pairs only (traditional mode).
+#
+#   public   10.233.0.0/24  initiating hosts, controller (dark, SPA), gateways (dark, SPA), Keycloak
+#   private  10.233.1.0/24  gateways + the protected nginx (no other way in)
+#   internal 10.233.2.0/24  management: controller, gateways' control API, IDS, Keycloak
+#
+# Usage:
+#   ./scripts/gen-env.sh                      # .env with random lab secrets (once)
+#   docker compose up -d --build --wait       # mode from .env (SDP_MODE + COMPOSE_PROFILES)
+#   ./scripts/demo.sh
+# Traditional mode: SDP_MODE=traditional COMPOSE_PROFILES= docker compose up -d --build --wait
+# More gateways:    docker compose up -d --wait --scale gateway=5
+# The PKI is generated on first start into the `pki` volume (nothing is committed).
+
+name: iamidssdp
+
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+
+x-sdp-env: &sdp-env
+  SDP_MODE: ${SDP_MODE:-proposed}
+  SDP_OIDC_ISSUER: https://keycloak:8443/realms/sdp
+  SDP_PUBLIC_SUBNET: 10.233.0.0/24
+  SDP_INTERNAL_SUBNET: 10.233.2.0/24
+  SDP_TRUSTED_SUBNETS: 10.233.2.0/24
+
+x-client: &client
+  build: { <<: *build, target: client }
+  image: iamidssdp/client:lab
+  restart: unless-stopped
+  init: true
+  depends_on:
+    gateway:
+      condition: service_healthy
+
+services:
+
+  # ============== PKI (one-shot) ==============
+  pki:
+    build: { <<: *build, target: controller }
+    image: iamidssdp/controller:lab
+    user: "0"
+    entrypoint: ["/usr/local/bin/pki-bootstrap.sh"]
+    command: []
+    volumes:
+      - pki:/pki
+    network_mode: none
+
+  # ============== IAM (proposed mode) ==============
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    profiles: ["proposed"]
+    restart: unless-stopped
+    command:
+      - start
+      - --import-realm
+      - --hostname=https://keycloak:8443
+      - --https-certificate-file=/etc/sdp/tls/tls.crt
+      - --https-certificate-key-file=/etc/sdp/tls/tls.key
+      - --http-enabled=false
+      - --health-enabled=true
+      - --http-management-scheme=http
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?run scripts/gen-env.sh first}
+      # Substituted into keycloak/realm-sdp.json at import time.
+      KC_CONTROLLER_SECRET: ${KC_CONTROLLER_SECRET:?run scripts/gen-env.sh first}
+      ALICE_PASSWORD: ${ALICE_PASSWORD:?}
+      ALICE_OTP_SECRET: ${ALICE_OTP_SECRET:?}
+      BOB_PASSWORD: ${BOB_PASSWORD:?}
+      BOB_OTP_SECRET: ${BOB_OTP_SECRET:?}
+      CAROL_PASSWORD: ${CAROL_PASSWORD:?}
+      CAROL_OTP_SECRET: ${CAROL_OTP_SECRET:?}
+      BENCH_PASSWORD: ${BENCH_PASSWORD:?}
+      BENCH_OTP_SECRET: ${BENCH_OTP_SECRET:?}
+    volumes:
+      - ./keycloak/realm-sdp.json:/opt/keycloak/data/import/realm-sdp.json:ro
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/keycloak } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.5
+      internal:
+        ipv4_address: 10.233.2.5
+    depends_on:
+      pki:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+
+  # ============== IDS (proposed mode) ==============
+  ids:
+    build: { context: ./ids }
+    image: iamidssdp/ids:lab
+    profiles: ["proposed"]
+    restart: unless-stopped
+    init: true
+    environment:
+      IDS_CONTROLLER_URL: https://controller-mgmt:8443
+      IDS_ENFORCE: ${IDS_ENFORCE:-1}
+      IDS_RECORD_PATH: ${IDS_RECORD_PATH:-}
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ids } }
+      - ids-data:/data
+    networks:
+      internal:
+        ipv4_address: 10.233.2.20
+    depends_on:
+      pki:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ids-ready"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # ============== CONTROLLER ==============
+  controller:
+    build: { <<: *build, target: controller }
+    image: iamidssdp/controller:lab
+    restart: unless-stopped
+    init: true
+    cap_add:
+      - NET_ADMIN   # default-drop iptables, rules opened by fwknopd
+      - NET_RAW     # fwknopd sniffs SPA packets with libpcap
+    environment:
+      <<: *sdp-env
+      SDP_KC_ADMIN_CLIENT_ID: sdp-controller
+      SDP_KC_ADMIN_CLIENT_SECRET: ${KC_CONTROLLER_SECRET:?run scripts/gen-env.sh first}
+    volumes:
+      - ./config/policy.yaml:/etc/sdp/policy.yaml:ro
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/controller } }
+      - { type: volume, source: pki, target: /etc/sdp/devices, read_only: true, volume: { subpath: members/controller/devices } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.10
+      internal:
+        ipv4_address: 10.233.2.10
+        aliases: [controller-mgmt]
+    depends_on:
+      pki:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/sdp-ready"]
+      interval: 2s
+      timeout: 2s
+      retries: 90
+
+  # ============== ACCEPTING HOST(S) ==============
+  gateway:
+    build: { <<: *build, target: gateway }
+    image: iamidssdp/gateway:lab
+    restart: unless-stopped
+    init: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      <<: *sdp-env
+      SDP_CONTROLLER_URL: https://controller-mgmt:8443
+      SDP_IDS_URL: https://ids:9443
+      SDP_UPSTREAM: http://web:80
+    volumes:
+      - ./config/policy.yaml:/etc/sdp/policy.yaml:ro
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/gateway } }
+    networks:
+      - public
+      - private
+      - internal
+    depends_on:
+      controller:
+        condition: service_healthy
+      web:
+        condition: service_started
+      ids:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/sdp-ready"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+
+  # ============== PROTECTED SERVICE ==============
+  web:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /usr/share/nginx/html/portal/files
+        head -c 262144 /dev/urandom > /usr/share/nginx/html/portal/files/report.bin
+        exec nginx -g 'daemon off;'
+    volumes:
+      - ./lab/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./lab/web/html/portal/index.html:/usr/share/nginx/html/portal/index.html:ro
+      - ./lab/web/html/records:/usr/share/nginx/html/records:ro
+      - ./lab/web/html/admin:/usr/share/nginx/html/admin:ro
+    networks:
+      private:
+        ipv4_address: 10.233.1.30
+
+  # ============== INITIATING HOSTS ==============
+  # SDP_PASSWORD / SDP_OTP_SECRET: lab-only shortcut so scripts can log in without a
+  # person (password typed by the user + code from an authenticator app in real life).
+  ih-alice:
+    <<: *client
+    environment:
+      <<: *sdp-env
+      SDP_USERNAME: alice
+      SDP_PASSWORD: ${ALICE_PASSWORD:?run scripts/gen-env.sh first}
+      SDP_OTP_SECRET: ${ALICE_OTP_SECRET:?}
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-alice } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.40
+
+  ih-bob:
+    <<: *client
+    environment:
+      <<: *sdp-env
+      SDP_USERNAME: bob
+      SDP_PASSWORD: ${BOB_PASSWORD:?run scripts/gen-env.sh first}
+      SDP_OTP_SECRET: ${BOB_OTP_SECRET:?}
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bob } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.41
+
+  # Benchmark initiating hosts (docker compose --profile bench, used by scripts/bench).
+  ih-bench-1: &bench
+    <<: *client
+    profiles: ["bench"]
+    environment:
+      <<: *sdp-env
+      SDP_USERNAME: bench
+      SDP_PASSWORD: ${BENCH_PASSWORD:?run scripts/gen-env.sh first}
+      SDP_OTP_SECRET: ${BENCH_OTP_SECRET:?}
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bench-1 } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.51
+  ih-bench-2:
+    <<: *bench
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bench-2 } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.52
+  ih-bench-3:
+    <<: *bench
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bench-3 } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.53
+  ih-bench-4:
+    <<: *bench
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bench-4 } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.54
+  ih-bench-5:
+    <<: *bench
+    volumes:
+      - { type: volume, source: pki, target: /etc/sdp/tls, read_only: true, volume: { subpath: members/ih-bench-5 } }
+    networks:
+      public:
+        ipv4_address: 10.233.0.55
+
+networks:
+  public:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.233.0.0/24
+          ip_range: 10.233.0.128/25   # dynamic addresses (scaled gateways)
+  private:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.233.1.0/24
+          ip_range: 10.233.1.128/25
+  internal:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.233.2.0/24
+          ip_range: 10.233.2.128/25
+
+volumes:
+  pki:
+  ids-data:

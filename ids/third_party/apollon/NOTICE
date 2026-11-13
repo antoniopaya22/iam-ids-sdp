@@ -1,0 +1,16 @@
+sdp_ids/apollon_mab.py is derived from MAB/apollon_mab.py of Apollon
+(https://github.com/antoniopaya22/apollon, commit dee778fe6ba7d8afe45223f55957c749e7703653),
+Copyright the Apollon authors (Antonio Payá, Sergio Arroni, Vicente García-Díaz,
+Alberto Gómez), licensed under the Apache License, Version 2.0 (see LICENSE in this
+directory).
+
+Changes made for iam-ids-sdp:
+- a smaller default classifier pool sized for the lab's 11 window features;
+- predict_proba_with_arms() returns the arm chosen by Thompson sampling for each row,
+  so the IDS can report which classifier answered;
+- arm_names() for reporting;
+- docstrings adapted. The selection and update logic are unchanged.
+
+Paper: A. Payá, S. Arroni, V. García-Díaz, A. Gómez. Apollon: A robust defense system
+against Adversarial Machine Learning attacks in Intrusion Detection Systems.
+Computers & Security 136, 103546 (2024). https://doi.org/10.1016/j.cose.2023.103546

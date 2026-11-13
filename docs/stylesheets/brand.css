@@ -1,0 +1,140 @@
+/* iam-ids-sdp brand: "verify who, watch how".
+   Cold blue-black like a monitoring room, alert crimson as the accent (the
+   colour of an IDS alarm), mint for authorized paths and a pale steel blue
+   for telemetry. The hero background is a set of monitor scanlines with a
+   slow scan beam. Used by the landing page (landing.css) and by the
+   documentation pages (extra.css). */
+
+.lp, .lp-nav, .lp-foot {
+  /* landing surfaces */
+  --lp-dark: #090c11;
+  --lp-dark-2: #10151d;
+  --lp-light: #f1f3f6;
+  --lp-light-2: #e3e7ec;
+  --lp-ink: #0e131a;
+
+  /* alert crimson */
+  --lp-accent: #ff3d5a;
+  --lp-accent-hover: #ff5c76;
+  --lp-accent-soft: #ff8fa1;
+  --lp-accent-ink: #c0122e;
+  --lp-on-accent: #090c11;
+  --lp-mark: #ff3d5a;
+  --lp-ok: #5ee6a8;
+  --lp-ok-soft: rgba(94, 230, 168, .12);
+  --lp-ok-ink: #0b7a4b;
+  --lp-red: #ff3d5a;
+  --lp-amber: #ffc857;
+  --lp-tel: #8fb4d9;
+
+  /* text and code on dark */
+  --lp-text-d: #eaeef4;
+  --lp-text-d2: #c9d1dc;
+  --lp-muted-d: #9da8b7;
+  --lp-dim-d: #737f90;
+  --lp-node: #121821;
+  --lp-code-bg: #0c1017;
+  --lp-code-bar: #141a24;
+  --lp-code-fg: #dbe2ec;
+  --lp-nav-bg: rgba(9, 12, 17, .86);
+
+  /* hero: monitor scanlines under a cold glow */
+  --lp-glow-1: rgba(255, 61, 90, .12);
+  --lp-glow-2: rgba(143, 180, 217, .07);
+  --lp-hero-pattern: repeating-linear-gradient(180deg, rgba(255, 255, 255, .06) 0 1px, transparent 1px 6px);
+  --lp-hero-pattern-size: auto;
+
+  /* call to action: crimson band, dark type */
+  --lp-cta-bg: #ff3d5a;
+  --lp-cta-fg: #090c11;
+  --lp-cta-mark: #090c11;
+  --lp-cta-line: rgba(9, 12, 17, .35);
+  --lp-cta-install-bg: rgba(9, 12, 17, .1);
+  --lp-cta-install-btn: #090c11;
+  --lp-cta-install-btn-fg: #ff3d5a;
+  --lp-cta-btn-bg: #090c11;
+  --lp-cta-btn-fg: #ffffff;
+  --lp-cta-watermark: rgba(9, 12, 17, .28);
+}
+
+/* product header of the docs pages */
+:root {
+  --brand-header-bg: #090c11;
+  --brand-header-accent: #ff3d5a;
+  --brand-header-on-accent: #090c11;
+}
+
+/* documentation pages */
+[data-md-color-scheme="default"] {
+  --md-mermaid-sequence-actor-line-color: #c5cdd8;
+  --md-mermaid-sequence-actor-border-color: #c0122e;
+  --md-mermaid-sequence-message-line-color: #c0122e;
+  --md-mermaid-sequence-number-bg-color: #c0122e;
+  --md-mermaid-node-bg-color: #fff0f2;
+  --md-mermaid-node-fg-color: #0e131a;
+  --md-mermaid-edge-color: #c0122e;
+  --md-mermaid-label-bg-color: #f1f3f6;
+  --md-mermaid-label-fg-color: #0e131a;
+  --lp-accent: #c0122e;
+  --lp-accent-hover: #9c0d24;
+  --lp-accent-soft: #fff0f2;
+  --lp-on-accent: #ffffff;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-mermaid-sequence-actor-line-color: #2a3442;
+  --md-mermaid-sequence-actor-border-color: #ff8fa1;
+  --md-mermaid-sequence-message-line-color: #ff8fa1;
+  --md-mermaid-sequence-number-bg-color: #ff8fa1;
+  --md-mermaid-node-bg-color: #2a1218;
+  --md-mermaid-node-fg-color: #eaeef4;
+  --md-mermaid-edge-color: #ff8fa1;
+  --md-mermaid-label-bg-color: #10151d;
+  --md-mermaid-label-fg-color: #eaeef4;
+  --lp-bg: #090c11;
+  --lp-bg-soft: #0e1219;
+  --lp-surface: #10151d;
+  --lp-line: #1c2430;
+  --lp-line-strong: #2a3442;
+  --lp-accent: #ff8fa1;
+  --lp-accent-hover: #ffb0bd;
+  --lp-accent-soft: #2a1218;
+  --lp-on-accent: #090c11;
+  --md-default-bg-color: #090c11;
+  --md-code-bg-color: #0e1219;
+}
+
+/* landing signature: the eyebrow mark is a small ID badge with a live dot */
+.lp .lp-eyebrow::before {
+  width: 16px; height: 10px; border-radius: 3px; background: none;
+  border: 2px solid currentColor;
+  box-shadow: inset 4px 0 0 -1px currentColor;
+}
+.lp .lp-dark .lp-eyebrow { color: var(--lp-accent-soft); }
+
+/* a slow scan beam sweeps the hero, like a monitor refreshing */
+.lp .lp-hero::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 120px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(143, 180, 217, .025) 80%, rgba(255, 61, 90, .045) 99%, transparent);
+  transform: translateY(-200px);
+  animation: lp-scan 9s linear infinite;
+}
+@keyframes lp-scan { to { transform: translateY(110vh); } }
+@media (prefers-reduced-motion: reduce) { .lp .lp-hero::after { animation: none; display: none; } }
+.lp .lp-hero > .lp-wrap { position: relative; z-index: 1; }
+
+/* diagram packets specific to this flow */
+.lp .lp-d-pkt--tel { fill: var(--lp-tel); }
+.lp .lp-d-pkt--alert { fill: var(--lp-red); }
+.lp .lp-d-link.is-alert { stroke: var(--lp-red); stroke-width: 3; }
+.lp .lp-d-link.is-tel { stroke: var(--lp-tel); stroke-dasharray: 4 5; }
+.lp .lp-d-node.is-alert rect { stroke: var(--lp-red); fill: rgba(255, 61, 90, .14); }
+.lp .lp-d-node--ids rect { stroke-dasharray: 5 4; }
+.lp .lp-d-node.is-revoked text { opacity: .5; }
+
+/* six steps fit on one row */
+.lp .lp-flow__steps { gap: .3rem; }
+.lp .lp-flow__steps button { padding: .32rem .58rem; }
+
+/* the overhead of identity is a cost, not a win */
+.lp #eval .lp-table strong { color: var(--lp-amber); }
