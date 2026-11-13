@@ -191,7 +191,7 @@ services:
 
   # ============== PROTECTED SERVICE ==============
   web:
-    image: nginx:1.28-alpine
+    image: nginx:1.31-alpine
     restart: unless-stopped
     command:
       - sh
