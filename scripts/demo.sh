@@ -48,7 +48,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-MODE="$(ctl status -json 2>/dev/null | grep -o '"mode":"[a-z]*"' | cut -d'"' -f4)"
+MODE="$(ctl status -json 2>/dev/null | grep -o '"mode":"[a-z]*"' | head -1 | cut -d'"' -f4)"
 if [ -z "$MODE" ]; then
     echo "The lab is not running: ./scripts/gen-env.sh && docker compose up -d --build --wait"
     exit 1
