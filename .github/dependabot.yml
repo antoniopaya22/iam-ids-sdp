@@ -23,11 +23,15 @@ updates:
       base-images:
         patterns: ["*"]
 
-  # python base image of the IDS
+  # python base image of the IDS: patch updates only, the Python version
+  # follows the one tested in CI (setup-python) and the pinned wheels
   - package-ecosystem: docker
     directory: /ids
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   # Keycloak and nginx images of the lab
   - package-ecosystem: docker-compose
