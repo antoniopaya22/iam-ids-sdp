@@ -1,3 +1,12 @@
+---
+template: home.html
+title: iam-ids-sdp
+description: Software-Defined Perimeter with Keycloak IAM (MFA, RBAC, session tokens) and an Apollon-style IDS with per-identity behaviour analytics. Implementation following the IJIS 2025 article.
+hide:
+  - navigation
+  - toc
+---
+
 # iam-ids-sdp
 
 **iam-ids-sdp** is the companion implementation of the article *Enhancing software-defined perimeters with integrated identity solutions and threat detection for robust zero trust security* (Payá, García-Díaz and Gómez, [International Journal of Information Security 24, 178, 2025](https://doi.org/10.1007/s10207-025-01099-9)).
