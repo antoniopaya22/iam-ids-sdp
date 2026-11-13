@@ -16,7 +16,7 @@ In the proposed architecture the initiating host must obtain a session token fro
 | Roles | `admin` (every service), `researcher` (records + portal), `viewer` (portal), as in the paper's healthcare example |
 | Users | `alice` (researcher), `bob` (viewer), `carol` (admin), `bench` (viewer, benchmark only); each with a password and an OTP credential |
 | Client `sdp-client` | public client used by the IHs; direct access grant (password + `totp` parameter); audience mappers add `sdp-controller` and `sdp-gateway` to the access token |
-| Client `sdp-controller` | confidential client with a service account holding `realm-management` roles `view-users` and `manage-users`: token introspection and logging users out |
+| Client `sdp-controller` | confidential client with a service account holding `realm-management` roles `view-users` and `manage-users`, and the `kc-admin-api` client scope that Keycloak 26.8.2+ requires on Admin REST API tokens: token introspection and logging users out |
 | Access token lifetime | 5 minutes |
 | OTP policy | TOTP, HMAC-SHA1, 6 digits, 30 s period; codes reusable within their period (lab shortcut, see below) |
 | Brute-force protection | on (10 failures) |
