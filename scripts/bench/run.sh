@@ -77,7 +77,7 @@ for mode in "${modes[@]}"; do
         echo "--- topology $t: $ihs IH(s), 1 controller, $ahs AH(s)"
         build=""
         [ $built -eq 0 ] && build="--build" && built=1
-        docker compose up -d $build --wait --scale gateway="$ahs" >/dev/null
+        docker compose up -d $build --wait --scale gateway="$ahs" >/dev/null 2>&1
         n=0
         for _ in $(seq 1 60); do
             n="$(ex controller sdp-controller status -json | grep -o '"public_addr"' | wc -l)"
@@ -86,8 +86,8 @@ for mode in "${modes[@]}"; do
         done
         [ "$n" -eq "$ahs" ] || { echo "controller sees $n gateways, expected $ahs"; exit 1; }
         for k in $(seq 1 "$ihs"); do
-            ex "ih-bench-$k" sdp-client bench portal --runs "$RUNS" --pause "$PAUSE" \
-                --duration "${DURATION}s" --think "$THINK" \
+            ex "ih-bench-$k" sdp-client bench --runs "$RUNS" --pause "$PAUSE" \
+                --duration "${DURATION}s" --think "$THINK" portal \
                 > "$OUT/raw/$mode-t$t-ih$k.json" &
         done
         wait
