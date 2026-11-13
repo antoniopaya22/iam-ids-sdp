@@ -3,7 +3,7 @@
 # The model is trained while the image is built, on the telemetry windows recorded in the
 # lab (data/lab-windows.csv, see scripts/ids/record-dataset.sh). Without that file the
 # IDS runs with the baseline only.
-FROM python:3.12-slim-bookworm
+FROM python:3.15-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN useradd --system --uid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin ids
 WORKDIR /opt/ids
