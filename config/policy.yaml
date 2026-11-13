@@ -1,0 +1,32 @@
+# SDP policy: protected services (with the realm roles that grant them) and the
+# registry of Initiating Host devices. Read by the controller and by every AH.
+#
+# Roles are Keycloak realm roles (keycloak/realm-sdp.json). They are only
+# enforced in "proposed" mode; in "traditional" mode the device key pair is the
+# only credential and a device may reach every service listed for it.
+
+services:
+  portal:
+    description: Landing page of the protected application
+    path: /portal/
+    roles: [viewer, researcher, admin]
+  records:
+    description: Research records (sensitive data)
+    path: /records/
+    roles: [researcher, admin]
+  admin:
+    description: Administration console
+    path: /admin/
+    roles: [admin]
+
+devices:
+  # Device id = CN of the device certificate issued by the lab PKI.
+  ih-alice:
+    owner: alice      # researcher
+    services: [portal, records, admin]
+  ih-bob:
+    owner: bob        # viewer
+    services: [portal, records, admin]
+  ih-carol:
+    owner: carol      # admin
+    services: [portal, records, admin]
