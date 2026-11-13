@@ -342,6 +342,7 @@ func cmdBench(args []string) {
 	fs := flag.NewFlagSet("bench", flag.ExitOnError)
 	cf := addCredFlags(fs)
 	runs := fs.Int("runs", 10, "connection set-ups to measure")
+	warmup := fs.Int("warmup", 1, "set-ups run first and not reported (JIT and connection warm-up of the IdP)")
 	pause := fs.Duration("pause", 500*time.Millisecond, "pause between set-ups")
 	o := loadFlags(fs)
 	_ = fs.Parse(args)
@@ -352,6 +353,12 @@ func cmdBench(args []string) {
 	ctx := context.Background()
 	rep := BenchReport{Mode: mode(), Service: fs.Arg(0)}
 	var last *client.Result
+	for i := 0; i < *warmup; i++ {
+		if res, err := c.Connect(ctx, rep.Service, cf.credentials()); err == nil {
+			_ = c.Disconnect(ctx, res.Session.SessionID)
+		}
+		time.Sleep(*pause)
+	}
 	for i := 0; i < *runs; i++ {
 		if last != nil {
 			_ = c.Disconnect(ctx, last.Session.SessionID)
