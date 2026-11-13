@@ -16,7 +16,7 @@
 #
 # Usage: ./scripts/demo.sh [--quick]     Exit status is non-zero if any check fails.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 QUICK=0
 [ "${1:-}" = "--quick" ] && QUICK=1
@@ -38,7 +38,7 @@ ex() { docker compose exec -T "$@"; }
 # tcp_dark <service> <ip> <port>: 0 if a TCP connection cannot be opened within 2 s
 tcp_dark() { if ex "$1" timeout 2 bash -c "exec 3<>/dev/tcp/$2/$3" 2>/dev/null; then echo 1; else echo 0; fi; }
 ctl() { ex controller sdp-controller "$@"; }
-ids_status() { ex ids python -m sdp_ids status "$@"; }
+ids_status() { ex ids python -m sdp_ids status; }
 
 cleanup() {
     for c in ih-alice ih-bob; do
@@ -136,8 +136,9 @@ else
         sleep 1
     done
     printf '%s\n' "$alert" | indent
-    [ -n "$alert" ]
-    check $? "IDS raised an alert for alice's session $session" "no IDS alert for $session"
+    got_alert=1
+    [ -n "$alert" ] && got_alert=0
+    check "$got_alert" "IDS raised an alert for alice's session $session" "no IDS alert for $session"
     grep -q "'action': 'revoked'" <<<"$alert"
     check $? "controller acknowledged the alert and revoked the session" "controller did not revoke"
     ctl status -sessions | grep "$session" | indent
