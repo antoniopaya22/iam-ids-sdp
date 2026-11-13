@@ -1,0 +1,11 @@
+.git
+.github
+docs
+site
+results
+scripts
+ids
+keycloak
+*.md
+.env
+pki

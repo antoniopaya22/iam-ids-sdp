@@ -20,13 +20,17 @@ services:
     roles: [admin]
 
 devices:
-  # Device id = CN of the device certificate issued by the lab PKI.
+  # Device id = CN of the device certificate issued by the lab PKI
+  # (lab/pki-bootstrap.sh). In proposed mode the token's user must be the owner.
   ih-alice:
     owner: alice      # researcher
     services: [portal, records, admin]
   ih-bob:
     owner: bob        # viewer
     services: [portal, records, admin]
-  ih-carol:
-    owner: carol      # admin
-    services: [portal, records, admin]
+  # Initiating hosts of the benchmark (docker compose --profile bench).
+  ih-bench-1: { owner: bench, services: [portal] }
+  ih-bench-2: { owner: bench, services: [portal] }
+  ih-bench-3: { owner: bench, services: [portal] }
+  ih-bench-4: { owner: bench, services: [portal] }
+  ih-bench-5: { owner: bench, services: [portal] }
