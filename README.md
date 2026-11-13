@@ -9,9 +9,6 @@ Companion implementation of **[Enhancing software-defined perimeters with integr
 
 📖 **Documentation: <https://antoniopaya22.github.io/iam-ids-sdp/>**
 
-> [!NOTE]
-> **Provenance.** This repository was **empty when the paper was published** (initial commit only). The implementation was **written in 2026 following the paper**. Results quoted from the paper were obtained by the authors as reported there and **have not been regenerated with this code**; numbers produced by this repository are labelled as local measurements. See [Provenance](https://antoniopaya22.github.io/iam-ids-sdp/provenance/).
-
 | Component | Code | Role |
 |---|---|---|
 | `sdp-controller` | Go | Policy decision point: mTLS API, token validation (JWKS + introspection), RBAC, per-session SPA keys, IDS alerts → revocation, audit log |
