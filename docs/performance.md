@@ -65,3 +65,27 @@ Output, in `results/bench-<UTC time>/` (git-ignored):
 | `raw/*.json` | the JSON printed by each `sdp-client bench` |
 
 The script prints the summary table at the end. Treat the numbers as **local measurements** of this implementation on your hardware; they are not, and should not be presented as, the paper's results.
+
+## Example local run
+
+One full run (`./scripts/bench/run.sh`, commit `6957eeb`, 2026-11-13) on a laptop with an AMD Ryzen 5 5500U (6 cores / 12 threads), 22 GB RAM, Linux 7.0, Docker 29.7. **Local measurements of this implementation, not the paper's results**; your numbers will differ.
+
+| Mode | Topology | Set-up time, mean (median) ms | of which: token | controller SPA | session request | AH SPA | first request | Set-up bytes (KB) | Requests / 10 min per IH | Failed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| traditional | 1 (1 IH, 1 AH) | 281 (297) | — | 100 | 62 | 116 | 3 | 10.4 | 5930 | 0 |
+| proposed | 1 | 317 (313) | 66 | 61 | 71 | 116 | 3 | 18.4 | 5930 | 0 |
+| traditional | 2 (1 IH, 2 AHs) | 277 (283) | — | 98 | 60 | 116 | 3 | 15.7 | 5930 | 0 |
+| proposed | 2 | 287 (286) | 52 | 51 | 66 | 115 | 3 | 24.6 | 5930 | 0 |
+| traditional | 3 (1 IH, 5 AHs) | 246 (248) | — | 66 | 59 | 116 | 4 | 31.8 | 5930 | 0 |
+| proposed | 3 | 344 (349) | 59 | 95 | 68 | 118 | 5 | 43.3 | 5930 | 0 |
+| traditional | 4 (5 IHs, 10 AHs) | 319 (249) | — | 65 | 68 | 181 | 7 | 58.5 | 5930 | 0 |
+| proposed | 4 | 403 (339) | 61 | 76 | 80 | 180 | 8 | 74.5 | 5930 | 0 |
+
+How to read it:
+
+- **What the IAM costs.** The Keycloak login (password + TOTP, one HTTPS round trip including the TLS handshake) takes 52–66 ms, and validating the token at the controller (signature, introspection, RBAC) adds about 5–12 ms to the session request. That is the overhead the proposed architecture adds to each set-up in this lab, of the same order as the 75–100 ms reported in the paper.
+- **Why the totals are noisier than that.** Both SPA phases are dominated by fwknopd noticing the packet and inserting the rule; the controller phase varies between about 50 and 100 ms from run to run, which is as large as the IAM cost. Compare the phases rather than the totals, or raise `--runs`.
+- **Topology 4 outliers.** With 5 IHs requesting sessions at the same moment, every AH reloads fwknopd several times in a row; a knock that arrives during a reload is occasionally lost and the client re-sends it after 1.5 s (maximum set-up 1.7–2.0 s, which inflates the means; the medians are unaffected).
+- **Bytes.** Counted on the client's sockets (TLS records with certificates and handshakes), so they grow with the number of AHs (one mTLS connection and one SPA packet per AH). The proposed mode adds about 8 KB: the HTTPS token request (about 6.3 KB with its TLS handshake) and the token carried in the session request and in the first request to each AH.
+- **Throughput.** The closed-loop workload (1 worker, 100 ms think time, ~1 ms latency per request) is limited by its think time, so it reaches the same 5930 requests per 10 minutes in both modes and all topologies: the per-request token check at the AH (cached validation) does not change it. Without think time or with more workers the benchmark would measure the capacity of this host instead; in proposed mode such traffic is exactly what the IDS is built to flag.
+- The IDS was active during the proposed-mode runs and raised no alert on this workload.
