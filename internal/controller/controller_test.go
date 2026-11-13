@@ -131,7 +131,8 @@ func newHarness(t *testing.T, mode string) *harness {
 	for _, id := range []string{"gw-1", "gw-2"} {
 		rec := hs.do(t, "POST", "/v1/gateways", "gateway", id, "", api.GatewayRegistration{
 			ID: id, PublicAddr: "10.233.0.20", ControlURL: "https://" + id + ":9443", SPAPort: 62201, ProxyPort: 8080})
-		if rec.Code != http.StatusNoContent {
+		var rr api.RegistrationResponse
+		if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &rr) != nil || rr.Instance == "" {
 			t.Fatalf("register: %d %s", rec.Code, rec.Body)
 		}
 	}
@@ -260,7 +261,7 @@ func TestAlertRevokesSessionsOfTheIdentity(t *testing.T) {
 	}
 
 	rec := hs.do(t, "POST", "/v1/alerts", "ids", "ids", "", api.Alert{
-		SessionID: s1.SessionID, Detector: "apollon-mab", Reason: "http flood", Score: 0.99})
+		SessionID: s1.SessionID, Detector: "apollon-mab", Reason: "request rate far above the baseline", Score: 0.99})
 	var ar api.AlertResponse
 	_ = json.Unmarshal(rec.Body.Bytes(), &ar)
 	if rec.Code != http.StatusOK || ar.Action != "revoked" || len(ar.Revoked) != 2 {
@@ -353,5 +354,28 @@ func TestRegistrationValidation(t *testing.T) {
 	}
 	if rec := hs.do(t, "POST", "/v1/gateways", "device", "ih-alice", "", bad[0]); rec.Code != http.StatusForbidden {
 		t.Errorf("device registered a gateway: %d", rec.Code)
+	}
+}
+
+func TestAdminRevoke(t *testing.T) {
+	hs := newHarness(t, api.ModeProposed)
+	_, a := hs.session(t, "ih-alice", "tok-alice", "records")
+	_, b := hs.session(t, "ih-bob", "tok-bob", "portal")
+	if got := hs.srv.AdminRevoke(context.Background(), "", "", "", true); got != nil {
+		t.Fatalf("empty selector revoked %v", got)
+	}
+	got := hs.srv.AdminRevoke(context.Background(), "ih-alice", "", "", false)
+	if len(got) != 1 || got[0] != a.SessionID {
+		t.Fatalf("revoked %v", got)
+	}
+	if len(hs.iam.logouts) != 0 {
+		t.Fatal("logout without being asked")
+	}
+	got = hs.srv.AdminRevoke(context.Background(), "", "bob", "maintenance", true)
+	if len(got) != 1 || got[0] != b.SessionID || len(hs.iam.logouts) != 1 || hs.iam.logouts[0] != "u-bob" {
+		t.Fatalf("revoked %v, logouts %v", got, hs.iam.logouts)
+	}
+	if !strings.Contains(hs.audit.String(), `"event":"admin_revoke"`) {
+		t.Fatal("admin revocation not audited")
 	}
 }

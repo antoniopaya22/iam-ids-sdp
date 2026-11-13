@@ -2,6 +2,8 @@
 //
 //	sdp-controller serve              run the controller (configured with SDP_* variables)
 //	sdp-controller status [-sessions] print gateways and sessions (local status port)
+//	sdp-controller revoke -device ID | -user NAME [-logout]
+//	                                  end sessions as an administrator (and the IdP sessions)
 //
 // In the lab the controller is itself dark: its public interface drops everything until a
 // registered device sends an SPA packet with its static device keys. The internal
@@ -47,8 +49,10 @@ func main() {
 		}
 	case "status":
 		status(os.Args[2:])
+	case "revoke":
+		revoke(os.Args[2:])
 	default:
-		fmt.Fprintln(os.Stderr, "usage: sdp-controller serve | status [-sessions] [-json]")
+		fmt.Fprintln(os.Stderr, "usage: sdp-controller serve | status [-sessions] [-json] | revoke [-device ID] [-user NAME] [-logout]")
 		os.Exit(2)
 	}
 }
@@ -139,11 +143,20 @@ func serve() error {
 	}
 	apiSrv := &http.Server{Addr: cli.Env("SDP_LISTEN", ":8443"), Handler: srv.Handler(), TLSConfig: tlsCfg,
 		ReadHeaderTimeout: 10 * time.Second, ErrorLog: log.New(io.Discard, "", 0)}
+	// Local administration port (loopback only): status and administrator revocation.
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(srv.Status(r.URL.Query().Get("verbose") != ""))
+	})
+	adminMux.HandleFunc("POST /revoke", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		ids := srv.AdminRevoke(r.Context(), q.Get("device"), q.Get("user"), q.Get("reason"), q.Get("logout") != "")
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"revoked": ids})
+	})
 	statusSrv := &http.Server{Addr: cli.Env("SDP_STATUS_LISTEN", "127.0.0.1:8081"), ReadHeaderTimeout: 5 * time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(srv.Status(r.URL.Query().Get("verbose") != ""))
-		})}
+		Handler: adminMux}
 
 	errCh := make(chan error, 2)
 	go func() { errCh <- apiSrv.ListenAndServeTLS("", "") }()
@@ -217,7 +230,9 @@ func startSPA(ctx context.Context, pol *policy.Policy, logger *log.Logger) error
 		}
 		stanzas = append(stanzas, spa.Stanza{ID: id, Source: "ANY", OpenPorts: []string{fmt.Sprintf("tcp/%d", port)},
 			KeyBase64: kf.KeyBase64, HMACKeyBase64: kf.HMACKeyBase64,
-			AccessTimeout: cli.EnvInt("SDP_SPA_ACCESS_TIMEOUT", 30)})
+			// The door only has to stay open for the TCP handshake: established
+			// connections continue through the conntrack rule of the default-drop policy.
+			AccessTimeout: cli.EnvInt("SDP_SPA_ACCESS_TIMEOUT", 5)})
 	}
 	d := spa.NewDaemon(spa.DaemonConfig{Dir: "/run/fwknop", Interface: pubIf, Logger: log.New(os.Stderr, "[fwknopd] ", log.LstdFlags)})
 	if err := d.Start(ctx); err != nil {
@@ -287,4 +302,40 @@ func status(args []string) {
 		}
 	}
 	tw.Flush()
+}
+
+func revoke(args []string) {
+	fs := flag.NewFlagSet("revoke", flag.ExitOnError)
+	device := fs.String("device", "", "device id")
+	user := fs.String("user", "", "Keycloak username")
+	logout := fs.Bool("logout", false, "also end the users' Keycloak sessions (proposed mode)")
+	reason := fs.String("reason", "", "reason written to the audit log")
+	addr := fs.String("addr", cli.Env("SDP_STATUS_LISTEN", "127.0.0.1:8081"), "admin address")
+	_ = fs.Parse(args)
+	if *device == "" && *user == "" {
+		cli.Fatalf(2, "revoke: -device or -user is required")
+	}
+	q := url.Values{}
+	if *device != "" {
+		q.Set("device", *device)
+	}
+	if *user != "" {
+		q.Set("user", *user)
+	}
+	if *reason != "" {
+		q.Set("reason", *reason)
+	}
+	if *logout {
+		q.Set("logout", "1")
+	}
+	resp, err := http.Post("http://"+*addr+"/revoke?"+q.Encode(), "application/json", nil) //nolint:gosec // local admin port
+	if err != nil {
+		cli.Fatalf(1, "revoke: %v", err)
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Revoked []string `json:"revoked"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	fmt.Printf("revoked %d session(s) %v\n", len(out.Revoked), out.Revoked)
 }

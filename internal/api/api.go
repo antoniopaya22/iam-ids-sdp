@@ -87,6 +87,13 @@ type GatewayRegistration struct {
 	ProxyPort  int    `json:"proxy_port"`
 }
 
+// RegistrationResponse is the controller's answer to a GatewayRegistration. Sessions live
+// in the controller's memory: when Instance changes (the controller restarted), the AH
+// drops every session granted by the previous instance.
+type RegistrationResponse struct {
+	Instance string `json:"controller_instance"`
+}
+
 // Alert is raised by the IDS when a session behaves suspiciously.
 type Alert struct {
 	SessionID string    `json:"session_id"`

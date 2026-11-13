@@ -355,3 +355,21 @@ type fakeConnT struct {
 }
 
 func fakeConn(i int) net.Conn { return &fakeConnT{id: i} }
+
+func TestRevokeAllAfterControllerRestart(t *testing.T) {
+	h := newHarness(t, api.ModeProposed)
+	h.install(t, api.ModeProposed, "s1", "10.233.0.40", "u-alice", "portal")
+	h.install(t, api.ModeProposed, "s2", "10.233.0.41", "u-bob", "portal")
+	if n := h.agent.RevokeAll(context.Background(), "controller restarted"); n != 2 {
+		t.Fatalf("revoked %d sessions, want 2", n)
+	}
+	if len(h.spa.stanzas) != 0 || len(h.fw.removed) != 2 {
+		t.Fatalf("stanzas %v, firewall cleanups %v", h.spa.stanzas, h.fw.removed)
+	}
+	if rec := h.get("/portal/", "10.233.0.40", "ih-alice", "tok-alice"); rec.Code == 200 {
+		t.Fatal("session survived RevokeAll")
+	}
+	if n := h.agent.RevokeAll(context.Background(), "again"); n != 0 {
+		t.Fatalf("second RevokeAll revoked %d", n)
+	}
+}

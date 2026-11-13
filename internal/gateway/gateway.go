@@ -250,6 +250,23 @@ func (a *Agent) Revoke(ctx context.Context, rr api.RevokeRequest) {
 		Detail: map[string]any{"firewall_rules_removed": removed, "connections_closed": len(toClose), "other_live_sessions": others}})
 }
 
+// RevokeAll tears down every live session (e.g. the controller that granted them
+// restarted and no longer knows them). It returns the number of sessions revoked.
+func (a *Agent) RevokeAll(ctx context.Context, reason string) int {
+	var rrs []api.RevokeRequest
+	a.mu.Lock()
+	for id, s := range a.sessions {
+		if !s.revoked {
+			rrs = append(rrs, api.RevokeRequest{SessionID: id, ClientIP: s.ClientIP, TokenSID: s.TokenSID, Reason: reason})
+		}
+	}
+	a.mu.Unlock()
+	for _, rr := range rrs {
+		a.Revoke(ctx, rr)
+	}
+	return len(rrs)
+}
+
 func (a *Agent) liveSessionsForIPLocked(ip string) int {
 	n := 0
 	now := a.cfg.Now()

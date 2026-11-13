@@ -156,13 +156,21 @@ func serve() error {
 	registered := make(chan struct{})
 	go func() {
 		first := true
+		instance := ""
 		for {
-			if err := register(ctx, ctrl, ctrlURL, reg); err != nil {
+			if got, err := register(ctx, ctrl, ctrlURL, reg); err != nil {
 				logger.Printf("registration: %v", err)
-			} else if first {
-				first = false
-				logger.Printf("registered with %s as %s (public %s, management %s)", ctrlURL, id, pubIP, mgmtIP)
-				close(registered)
+			} else {
+				if instance != "" && got != instance {
+					n := agent.RevokeAll(ctx, "controller restarted: its sessions are no longer valid")
+					logger.Printf("controller instance changed (%s -> %s): %d session(s) dropped", instance, got, n)
+				}
+				instance = got
+				if first {
+					first = false
+					logger.Printf("registered with %s as %s (public %s, management %s)", ctrlURL, id, pubIP, mgmtIP)
+					close(registered)
+				}
 			}
 			wait := 10 * time.Second
 			if first {
@@ -217,15 +225,20 @@ func serve() error {
 	return nil
 }
 
-func register(ctx context.Context, c *http.Client, ctrlURL string, reg api.GatewayRegistration) error {
-	return postJSON(ctx, c, ctrlURL+"/v1/gateways", reg)
+// register announces the AH and returns the controller's instance id.
+func register(ctx context.Context, c *http.Client, ctrlURL string, reg api.GatewayRegistration) (string, error) {
+	var rr api.RegistrationResponse
+	if err := postJSON(ctx, c, ctrlURL+"/v1/gateways", reg, &rr); err != nil {
+		return "", err
+	}
+	return rr.Instance, nil
 }
 
 func telemetrySink(c *http.Client, u string) gateway.TelemetrySink {
-	return func(ctx context.Context, b api.TelemetryBatch) error { return postJSON(ctx, c, u, b) }
+	return func(ctx context.Context, b api.TelemetryBatch) error { return postJSON(ctx, c, u, b, nil) }
 }
 
-func postJSON(ctx context.Context, c *http.Client, u string, v any) error {
+func postJSON(ctx context.Context, c *http.Client, u string, v, out any) error {
 	body, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -243,6 +256,9 @@ func postJSON(ctx context.Context, c *http.Client, u string, v any) error {
 	if resp.StatusCode/100 != 2 {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
 		return fmt.Errorf("%s: %s", resp.Status, strings.TrimSpace(string(b)))
+	}
+	if out != nil {
+		return json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(out)
 	}
 	return nil
 }

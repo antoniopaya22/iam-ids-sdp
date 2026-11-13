@@ -83,6 +83,8 @@ type Session struct {
 type Server struct {
 	cfg Config
 
+	instance string // random id of this controller process (see api.RegistrationResponse)
+
 	mu       sync.Mutex
 	sessions map[string]*Session
 	gateways map[string]*Gateway
@@ -114,7 +116,7 @@ func New(cfg Config) (*Server, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
-	return &Server{cfg: cfg, sessions: map[string]*Session{}, gateways: map[string]*Gateway{}}, nil
+	return &Server{cfg: cfg, instance: newID(), sessions: map[string]*Session{}, gateways: map[string]*Gateway{}}, nil
 }
 
 // Handler returns the mTLS API.
@@ -412,6 +414,34 @@ func (s *Server) sessionsToRevoke(a api.Alert) []string {
 	return ids
 }
 
+// AdminRevoke ends the active sessions of a device and/or a user (administrator
+// intervention). With logoutIAM the users' Keycloak sessions are ended too.
+func (s *Server) AdminRevoke(ctx context.Context, device, username, reason string, logoutIAM bool) []string {
+	if device == "" && username == "" {
+		return nil
+	}
+	var ids []string
+	s.mu.Lock()
+	for id, sess := range s.sessions {
+		if sess.State != "active" {
+			continue
+		}
+		if (device == "" || sess.Device == device) && (username == "" || sess.Username == username) {
+			ids = append(ids, id)
+		}
+	}
+	s.mu.Unlock()
+	if len(ids) == 0 {
+		return nil
+	}
+	if reason == "" {
+		reason = "revoked by an administrator"
+	}
+	s.cfg.Audit.Record(audit.Event{Event: "admin_revoke", Outcome: "revoke", Mode: s.cfg.Mode, Device: device,
+		Username: username, Reason: reason, Detail: map[string]any{"sessions": len(ids)}})
+	return s.endSessions(ctx, ids, "revoked", reason, logoutIAM && s.cfg.Mode == api.ModeProposed)
+}
+
 // ---------------------------------------------------------------- gateways
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request, peer tlsutil.Peer) {
@@ -430,7 +460,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request, peer tls
 		s.cfg.Audit.Record(audit.Event{Event: "gateway_registered", Outcome: "info", Mode: s.cfg.Mode,
 			Gateway: reg.ID, ClientIP: remoteIP(r), Detail: reg})
 	}
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusOK, api.RegistrationResponse{Instance: s.instance})
 }
 
 func (s *Server) handleDeregister(w http.ResponseWriter, r *http.Request, peer tlsutil.Peer) {
