@@ -33,7 +33,7 @@ CMD ["serve"]
 
 FROM debian:bookworm-slim AS client
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates fwknop-client curl hey jq iproute2 \
+      ca-certificates fwknop-client curl hey jq iproute2 procps \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --system --uid 10001 --create-home --home-dir /home/sdp --shell /bin/bash sdp
 COPY --from=build /out/sdp-client /usr/local/bin/
