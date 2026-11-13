@@ -67,7 +67,8 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
-      "protocol": "openid-connect"
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["acr", "basic", "email", "profile", "roles", "web-origins", "kc-admin-api"]
     }
   ],
   "users": [
